@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from models.dkr import DKR
+from models.models import DKR
 from config.dbfull import dkr_connection
-from schemas.dkr import DewanKerja, DewansKerja
+from schemas.schemas import DewanKerja, DewansKerja
 from bson import ObjectId
 import pymongo
 

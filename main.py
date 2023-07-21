@@ -5,9 +5,6 @@ from routes.dkr import dkr
 from routes.news import news
 from routes.activity import activity
 from routes.opinion import opinion
-from config.dbdapot import dapot_connection
-from config.dbdkr import dkr_connection
-from config.dbsch import sch_connection
 
 app = FastAPI(
     title='Dira Abinawa',

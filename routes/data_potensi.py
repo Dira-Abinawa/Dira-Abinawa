@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from models.data_potensi import Dapot
+from models.models import Dapot
 from config.dbfull import dapot_connection
-from schemas.data_potensi import DataPotensi, DatasPotensi
+from schemas.schemas import DataPotensi, DatasPotensi
 from bson import ObjectId
 import pymongo
 

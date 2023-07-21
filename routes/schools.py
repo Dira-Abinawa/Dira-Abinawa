@@ -1,9 +1,7 @@
 from fastapi import APIRouter, Request
-from config.dbdapot import dapot_connection
-from config.dbdkr import dkr_connection
 from config.dbfull import sch_connection
-from schemas.schools import SchoolPadalarang, SchoolsPadalarang
-from models.schools import School
+from schemas.schemas import SchoolPadalarang, SchoolsPadalarang
+from models.models import School
 from bson import ObjectId
 import pymongo
 

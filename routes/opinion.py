@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 from config.dbfull import opinion_connection
-from schemas.opinion import OpinionPramuka, OpinionsPramuka
-from models.opinion import myOpinion
+from schemas.schemas import OpinionPramuka, OpinionsPramuka
+from models.models import myOpinion
 from bson import ObjectId
 import pymongo
 

@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from models.news import News
+from models.models import News
 from config.dbfull import news_connection
-from schemas.news import NewsPramuka, NewPramuka
+from schemas.schemas import NewsPramuka, NewPramuka
 from bson import ObjectId
 import pymongo
 

@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from models.activity import Activity
+from models.models import Activity
 from config.dbfull import activity_connection
-from schemas.activity import ActivityPramuka, ActivitiesPramuka
+from schemas.schemas import ActivityPramuka, ActivitiesPramuka
 from bson import ObjectId
 import pymongo
 
