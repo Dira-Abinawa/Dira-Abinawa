@@ -13,7 +13,7 @@ async def find_all_activity():
     activity_cursor = activity_connection.local.activity.find()
     activity_list = list(activity_cursor)
     if not activity_list:
-        return "Maaf, Anda tidak memiliki data apapun"
+        return "Data not found"
     result = [ActivityPramuka(activity) for activity in activity_list]
     return result
 

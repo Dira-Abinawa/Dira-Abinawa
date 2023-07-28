@@ -16,7 +16,7 @@ async def find_dapot():
     if len(dapot_list) > 0:
         print(DataPotensi(dapot_list[0]))
     else:
-        print("List 'dapot_list' kosong. Tidak ada elemen yang dapat ditampilkan.") 
+        print("Data not found") 
     return DatasPotensi(dapot_list)
 
 @dapot.post('/')

@@ -1,3 +1,5 @@
+#User
+
 #Activity
 def ActivityPramuka(item)->dict:
     return {
@@ -37,6 +39,7 @@ def DewanKerja(item)->dict:
         "level":item["level"],
         "position":item["position"],
         "period":item["period"],
+        "status":item["status"],
     }
     
 def DewansKerja(entity)->list:
@@ -49,11 +52,24 @@ def NewPramuka(item)->dict:
         "title":item["title"],
         "description":item["description"],
         "content":item["content"],
-        "thumbnail": item.get("thumbnail")
+        "hashtag":item["hashtag"],
+        "thumbnail": item.get("thumbnail"),
+        "comments": item.get("comments"),
     }
     
 def NewsPramuka(entity)->list:
     return [NewPramuka(item)for item in entity]
+
+#Comments
+def NewsComentItem(item) -> dict:
+    return {
+        "id": str(item.get("_id", "")),
+        "content": item.get("content", ""),
+        "id_news": item.get("id_news", "")  # Use get method to handle the "id_news" key
+    }
+
+def NewsComents(entity)->list:
+    return [NewsComentItem(item)for item in entity]
 
 #Opinion
 def OpinionPramuka(item)->dict:
@@ -75,7 +91,8 @@ def SchoolPadalarang(item)->dict:
         "school_name":item["school_name"],
         "basis_name":item["basis_name"],
         "male_ambalan_name":item["male_ambalan_name"],
-        "female_ambalan_name": item.get("female_ambalan_name", "")
+        "female_ambalan_name": item.get("female_ambalan_name", ""),
+        "registration_number":item["registration_number"],
     }
 def SchoolsPadalarang(entity)->list:
     return[SchoolPadalarang(item)for item in entity]

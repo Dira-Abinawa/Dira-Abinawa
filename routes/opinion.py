@@ -12,7 +12,7 @@ async def find_all_opinion():
     opinion_cursor = opinion_connection.local.opinion.find()
     opinion_list = list(opinion_cursor)
     if not opinion_list:
-        return "Maaf, Anda tidak memiliki data apapun"
+        return "Data not found."
     result = [OpinionPramuka(opinion) for opinion in opinion_list]
     return result
 

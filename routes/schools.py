@@ -18,8 +18,13 @@ async def find_all_schools():
 
 @sch.post('/')
 async def create_schools(school : School):
-    sch_connection.local.school.insert_one(dict(school))
-    return SchoolsPadalarang(sch_connection.local.school.find())
+    item_data = school.dict()
+    existing_item = sch_connection.local.school.find_one({"school_name": item_data["school_name"]})
+    if existing_item:
+        return 'Data already exists.'
+    else:
+        sch_connection.local.school.insert_one(dict(school))
+        return SchoolsPadalarang(sch_connection.local.school.find())
 
 @sch.put('/{id}')
 async def update_school(id, school: School):
