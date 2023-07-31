@@ -54,6 +54,8 @@ def NewPramuka(item)->dict:
         "content":item["content"],
         "hashtag":item["hashtag"],
         "thumbnail": item.get("thumbnail"),
+        "created_at": item.get("created_at"),
+        "updated_at": item.get("updated_at"),
         "comments": item.get("comments"),
     }
     
@@ -65,7 +67,8 @@ def NewsComentItem(item) -> dict:
     return {
         "id": str(item.get("_id", "")),
         "content": item.get("content", ""),
-        "id_news": item.get("id_news", "")  # Use get method to handle the "id_news" key
+        "id_news": item.get("id_news", "") ,
+        "created_at": item.get("created_at")
     }
 
 def NewsComents(entity)->list:

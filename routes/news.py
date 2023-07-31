@@ -8,8 +8,10 @@ from schemas.schemas import NewsPramuka, NewPramuka
 from routes.comment import get_comment_by_id
 from bson import ObjectId
 import pymongo
+from pymongo import DESCENDING
 from routes.login import get_current_active_user
 from typing import Optional, List
+from datetime import datetime
 
 news = APIRouter(tags=["News"])
 
@@ -19,40 +21,41 @@ async def find_all_news():
     news_list = list(news_cursor)
     if not news_list:
         return "Data not found."
-
-    # Buat list untuk menyimpan data berita dan komentar
     result_news = []
     result_comment = []
 
     for news_item in news_list:
-        news_id = str(news_item["_id"])  # Ubah _id menjadi string untuk menggunakan dalam query
-
-        # Query untuk mencari komentar yang memiliki id_news yang sama dengan id berita
+        news_id = str(news_item["_id"])
+        
         query = {"id_news": news_id}
         comment_cursor = coment_connection.local.coment.find(query)
         comments = [Comments(**comment)for comment in comment_cursor]
+        
+        updated_at = news_item.get("updated_at")
         if comments:
             result_news.append(News(
-            id=news_id,
-            title=news_item["title"],
-            description=news_item["description"],
-            content=news_item["content"],
-            hashtag=HashtagParams(news_item["hashtag"]),
-            thumbnail=news_item["thumbnail"],
-            comments= comments
-        ))
+                id=news_id,
+                title=news_item["title"],
+                description=news_item["description"],
+                content=news_item["content"],
+                hashtag=HashtagParams(news_item["hashtag"]),
+                thumbnail=news_item["thumbnail"],
+                created_at=news_item.get("created_at"),
+                updated_at_at=updated_at,
+                comments=comments
+            ))
         else:
             result_news.append(News(
-            id=news_id,
-            title=news_item["title"],
-            description=news_item["description"],
-            content=news_item["content"],
-            hashtag=HashtagParams(news_item["hashtag"]),
-            thumbnail=news_item["thumbnail"],
-        ))
+                id=news_id,
+                title=news_item["title"],
+                description=news_item["description"],
+                content=news_item["content"],
+                hashtag=HashtagParams(news_item["hashtag"]),
+                thumbnail=news_item["thumbnail"],
+                created_at=news_item.get("created_at"),
+                updated_at=updated_at if updated_at is not None else None,
+            ))
     return result_news    
-
-
 
 @news.post('/')
 async def create_news(
@@ -61,18 +64,21 @@ async def create_news(
     content: str = Form(...),
     hashtag: str = Form(...),
     thumbnail: str = Form(...),
-    news : News = Depends(get_current_active_user)
+    current_user: UserInDB = Depends(get_current_active_user)
 ):
-    news_cursor = news_connection.local.news.find()
-    news_list = list(news_cursor)
-    for news_item in news_list:
-        news_id = str(news_item["_id"])
     existing_item = news_connection.local.news.find_one({"title": title})
     if existing_item:
         raise HTTPException(status_code=400, detail="Data already exists.")
     else:
-        new_news = News(id=news_id ,title=title, description=description, content=content, hashtag=hashtag, thumbnail=thumbnail)
-        news_connection.local.news.insert_one(new_news.dict())
+        new_news_data = {
+            "title": title,
+            "description": description,
+            "content": content,
+            "hashtag": hashtag,
+            "thumbnail": thumbnail,
+            "created_at": datetime.utcnow(),
+        }
+        news_connection.local.news.insert_one(new_news_data)
         return NewsPramuka(news_connection.local.news.find())
     
 @news.get('/hashtag')
@@ -104,12 +110,32 @@ async def get_by_hashtag(hashtag: str = Query(
     return jsonable_encoder(result_filter)
 
 @news.put('/{id}')
-async def update_news(id, news: News):
+async def update_news(
+    id: str,
+    title: str = Form(...),
+    description: str = Form(...),
+    content: str = Form(...),
+    hashtag: str = Form(...),
+    thumbnail: str = Form(...),
+    created_at: str = Form(...),
+):
+    # Konversi data ke dalam bentuk dict yang sesuai dengan struktur News model
+    news_data = {
+        "title": title,
+        "description": description,
+        "content": content,
+        "hashtag": hashtag,
+        "thumbnail": thumbnail,
+        "created_at": created_at,
+        "updated_at":datetime.now()
+    }
+
     updated_news = news_connection.local.news.find_one_and_update(
         {"_id": ObjectId(id)},
-        {"$set": dict(news)},
+        {"$set": news_data},
         return_document=pymongo.ReturnDocument.AFTER
     )
+
     return NewPramuka(updated_news)
 
 @news.delete('/{id}')

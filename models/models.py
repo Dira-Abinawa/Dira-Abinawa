@@ -74,6 +74,7 @@ class DKR(BaseModel):
 class Comments(BaseModel):
     content: str
     id_news: str
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
 #News
 class HashtagParams(str,Enum):
@@ -93,6 +94,8 @@ class News(BaseModel):
     content: str
     hashtag: HashtagParams
     thumbnail: str
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
     comments: List[Comments] = []
 
     @classmethod

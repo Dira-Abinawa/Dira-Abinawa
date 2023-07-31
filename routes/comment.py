@@ -5,6 +5,7 @@ from models.models import Comments
 from bson import ObjectId
 from routes.login import get_current_active_user
 import pymongo
+from datetime import datetime
 
 comment = APIRouter(tags=["Comments"])
 
@@ -42,13 +43,17 @@ async def get_comment_by_id(id_news: str):
 
 
 @comment.post('/')
-async def create_news(
+async def create_comment(
     content: str = Form(...),
     id_news: str = Form(...),
-    comment: Comments = Depends(get_current_active_user)
+    current_user: Comments = Depends(get_current_active_user)
 ):
-    new_comment = Comments(content=content, id_news=id_news)
-    coment_connection.local.coment.insert_one(new_comment.dict())
+    new_comment_data = {
+        "content": content,
+        "id_news": id_news,
+        "created_at": datetime.utcnow()  # Set the created_at field to the current time
+    }
+    coment_connection.local.coment.insert_one(new_comment_data)
     return NewsComents(coment_connection.local.coment.find())
 
 @comment.put('/{id}')
