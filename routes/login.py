@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import bcrypt
-from models.models import Token, TokenData, User, UserInDB, UserRegistration
+from models.models import Token, TokenData, User, UserInDB, UserRegistration, News
 from config.dbfull import users_connection
 from pymongo.collection import Collection
 
@@ -38,12 +38,40 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return user
 
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+        token_data = TokenData(username=username)
+    except JWTError:
+        raise credentials_exception
+    user = get_user(username=token_data.username)
+    if user is None:
+        raise credentials_exception
+    return user
+
 async def get_current_active_user(
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserInDB = Depends(get_current_user),
+    
 ):
     if not current_user.active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
+
+async def get_news(
+news : News = Depends(get_current_user)
+
+):
+    if not news.active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return news
 
 def hash_password(password: str) -> str:
     salt = bcrypt.gensalt()

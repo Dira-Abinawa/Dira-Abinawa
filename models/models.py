@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, EmailStr, constr, SecretStr
 from enum import Enum
-from typing import List
+from typing import List, Optional
 from config.dbfull import coment_connection,news_connection
 from bson import ObjectId
 from datetime import datetime
@@ -87,7 +87,7 @@ class HashtagParams(str,Enum):
 
 
 class News(BaseModel):
-    id: str
+    id: Optional[str]
     title: str
     description: str
     content: str

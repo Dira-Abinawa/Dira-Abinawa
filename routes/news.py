@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Depends, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.encoders import jsonable_encoder
-from models.models import News, HashtagParams, Comments
+from models.models import News, HashtagParams, Comments, UserInDB
 from config.dbfull import news_connection, coment_connection,db    
 from schemas.schemas import NewsPramuka, NewPramuka
 from routes.comment import get_comment_by_id
 from bson import ObjectId
 import pymongo
+from routes.login import get_current_active_user
 from typing import Optional, List
 
 news = APIRouter(tags=["News"])
@@ -54,13 +55,24 @@ async def find_all_news():
 
 
 @news.post('/')
-async def create_news(news : News):
-    item_data = news.dict()
-    existing_item = news_connection.local.news.find_one({"title": item_data["title"]})
+async def create_news(
+    title: str = Form(...),
+    description: str = Form(...),
+    content: str = Form(...),
+    hashtag: str = Form(...),
+    thumbnail: str = Form(...),
+    news : News = Depends(get_current_active_user)
+):
+    news_cursor = news_connection.local.news.find()
+    news_list = list(news_cursor)
+    for news_item in news_list:
+        news_id = str(news_item["_id"])
+    existing_item = news_connection.local.news.find_one({"title": title})
     if existing_item:
-        return 'Data already exists.'
+        raise HTTPException(status_code=400, detail="Data already exists.")
     else:
-        news_connection.local.news.insert_one(dict(news))
+        new_news = News(id=news_id ,title=title, description=description, content=content, hashtag=hashtag, thumbnail=thumbnail)
+        news_connection.local.news.insert_one(new_news.dict())
         return NewsPramuka(news_connection.local.news.find())
     
 @news.get('/hashtag')

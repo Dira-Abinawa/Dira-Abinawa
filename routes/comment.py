@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Request, Query, HTTPException
+from fastapi import APIRouter, Request, Query, HTTPException, Depends, Form
 from config.dbfull import coment_connection
 from schemas.schemas import NewsComentItem, NewsComents
 from models.models import Comments
 from bson import ObjectId
+from routes.login import get_current_active_user
 import pymongo
 
 comment = APIRouter(tags=["Comments"])
@@ -41,8 +42,13 @@ async def get_comment_by_id(id_news: str):
 
 
 @comment.post('/')
-async def create_comment(opinion : Comments):
-    coment_connection.local.coment.insert_one(dict(opinion))
+async def create_news(
+    content: str = Form(...),
+    id_news: str = Form(...),
+    comment: Comments = Depends(get_current_active_user)
+):
+    new_comment = Comments(content=content, id_news=id_news)
+    coment_connection.local.coment.insert_one(new_comment.dict())
     return NewsComents(coment_connection.local.coment.find())
 
 @comment.put('/{id}')
