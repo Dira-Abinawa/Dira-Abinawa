@@ -1,9 +1,9 @@
 from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 
-client = MongoClient("mongodb+srv://RDGalihRakasiwi:fkSeIRIz0aQ3NfVf@cluster0.ni5ltny.mongodb.net/?retryWrites=true&w=majority")
+client = MongoClient("<mongoDB-URL>")
 db = client.get_database('dira_abinawa-all')
-MONGO_URI ="mongodb+srv://RDGalihRakasiwi:fkSeIRIz0aQ3NfVf@cluster0.ni5ltny.mongodb.net/?retryWrites=true&w=majority"
+MONGO_URI ="<mongoDB-URL>"
 
 async def get_database():
     client = AsyncIOMotorClient(MONGO_URI)
