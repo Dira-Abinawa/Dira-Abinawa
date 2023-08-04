@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr, constr, SecretStr
 from enum import Enum
 from typing import List, Optional
-from config.dbfull import coment_connection,news_connection
+from config.dbfull import db
 from bson import ObjectId
 from datetime import datetime
 
@@ -28,19 +28,53 @@ class User(BaseModel):
     email: str
     disabled: bool
     
-    
+#Opinion
+class myOpinion(BaseModel):
+    id: str = Field(alias='_id')
+    sender_name : str
+    subject : str
+    content : str
+    class Config:
+        allow_population_by_field_name = True
+        json_encoders = {
+            ObjectId: str
+        }
+    def __init__(self, **data):
+        if '_id' in data and isinstance(data['_id'], ObjectId):
+            data['_id'] = str(data['_id'])
+        super().__init__(**data)
+
+class Admin(BaseModel):
+    full_name: str
+    username: str
+    email: str
+    hashed_password: str
+    active: bool
+    is_admin : bool
+
 class UserInDB(BaseModel):
     full_name: str
     username: str
     email: str
     hashed_password: str
     active: bool
+    is_admin : Optional[bool]
+    opinions : List[myOpinion] = []
+    
 #Activity
 class Activity(BaseModel):
+    id: str = Field(alias="_id")
     activity_name : str
     circular_letter : str
     participant_requirements : str
     schedule_of_activities : str
+    
+    class Config:
+        arbitrary_types_allowed = True
+    def __init__(self, **data):
+        if '_id' in data and isinstance(data['_id'], ObjectId):
+            data['_id'] = str(data['_id'])
+        super().__init__(**data)
 
 #Data Potensi
 class Dapot(BaseModel):
@@ -61,7 +95,6 @@ class level(str,Enum):
     LAKSANA = "Laksana"
     GARUDA = "Garuda"
     
-    
 class DKR(BaseModel):
     name : str
     school_name : str
@@ -72,6 +105,8 @@ class DKR(BaseModel):
     
 # Comment
 class Comments(BaseModel):
+    id: str = Field(alias="_id")
+    sender_name : str
     content: str
     id_news: str
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
@@ -89,11 +124,12 @@ class HashtagParams(str,Enum):
 
 class News(BaseModel):
     id: Optional[str]
-    title: str
-    description: str
-    content: str
+    title: Optional[str]
+    description: Optional[str]
+    content: Optional[str]
     hashtag: HashtagParams
-    thumbnail: str
+    thumbnail: Optional[str]
+    author : Optional[str]
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
     comments: List[Comments] = []
@@ -101,11 +137,11 @@ class News(BaseModel):
     @classmethod
     def get_comments_by_id_news(cls, news_id):
         # Retrieve comments from MongoDB for the given news_id
-        comments_docs = coment_connection.find({"id_news": news_id})
+        comments_docs = db.comment.find({"id_news": news_id})
         comments = [Comments(**doc) for doc in comments_docs]
 
         # Retrieve news data from MongoDB
-        news_doc = news_connection.find_one({"_id": ObjectId(news_id)})
+        news_doc = db.news.find_one({"_id": ObjectId(news_id)})
 
         # Create a News object with the retrieved data and comments
         if news_doc:
@@ -122,11 +158,6 @@ class News(BaseModel):
         else:
             return None
 
-#Opinion
-class myOpinion(BaseModel):
-    sender_name : str
-    subject : str
-    content : str
     
 #Schools
 class School(BaseModel):

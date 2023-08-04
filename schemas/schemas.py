@@ -1,4 +1,16 @@
 #User
+def UserPramuka(item)->dict:
+    return {
+        "id":str(item["_id"]),
+        "full_name":item["full_name"],
+        "username":item["username"],
+        "email":item["email"],
+        "hashed_password":item["hashed_password"],
+        "active":item["active"],
+    }
+    
+def UsersPramuka(entity)->list:
+    return [UserPramuka(item)for item in entity]
 
 #Activity
 def ActivityPramuka(item)->dict:
@@ -46,30 +58,31 @@ def DewansKerja(entity)->list:
     return [DewanKerja(item)for item in entity]
 
 #News
-def NewPramuka(item)->dict:
+def NewPramuka(item) -> dict:
     return {
-        "id":str(item["_id"]),
-        "title":item["title"],
-        "description":item["description"],
-        "content":item["content"],
-        "hashtag":item["hashtag"],
+        "_id": str(item["_id"]),
+        "title": item["title"],
+        "description": item["description"],
+        "content": item["content"],
+        "hashtag": item["hashtag"],
         "thumbnail": item.get("thumbnail"),
+        "author": item.get("author"),
         "created_at": item.get("created_at"),
         "updated_at": item.get("updated_at"),
         "comments": item.get("comments"),
     }
-    
 def NewsPramuka(entity)->list:
     return [NewPramuka(item)for item in entity]
 
 #Comments
 def NewsComentItem(item) -> dict:
-    return {
-        "id": str(item.get("_id", "")),
-        "content": item.get("content", ""),
-        "id_news": item.get("id_news", "") ,
-        "created_at": item.get("created_at")
-    }
+        return {
+            "id": str(item.get("_id", "")),
+            "sender_name":item.get("sender_name",""),
+            "content": item["content"],
+            "id_news": item["id_news"],
+            "created_at": item["created_at"].isoformat() if "created_at" in item else ""
+        }
 
 def NewsComents(entity)->list:
     return [NewsComentItem(item)for item in entity]

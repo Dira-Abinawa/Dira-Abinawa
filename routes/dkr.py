@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request 
+from fastapi import APIRouter, Request, Depends
 from models.models import DKR
-from config.dbfull import dkr_connection
+from config.dbfull import db
+from routes.login import admin_required
 from schemas.schemas import DewanKerja, DewansKerja
 from bson import ObjectId
 import pymongo
@@ -9,44 +10,38 @@ dkr = APIRouter(tags=["Dewan Kerja Ranting"])
 
 @dkr.get('/')
 async def find_all_dkr():
-    dkr_cursor = dkr_connection.local.dkr.find()
+    dkr_cursor = db.dkr.find()
     dkr_list = list(dkr_cursor)
     if not dkr_list:
         return "Data not found."
-
-    # Loop through the retrieved documents and set status to "Null" if it's empty or not present
     for dkr in dkr_list:
         for dkr in dkr_list:
             dkr["_id"] = str(dkr["_id"])
             dkr.setdefault("status", False)
-
-    # Create instances of DKR using the updated dkr_list
     result = [DewanKerja(dkr) for dkr in dkr_list]
     return result
 
-
-@dkr.post('/')
+@dkr.post('/',dependencies=[Depends(admin_required)])
 async def create_dkr(dkr : DKR):
-    item_data = dkr.dict()
-    existing_item = dkr_connection.local.dkr.find_one({"name": item_data["name"]})
+    existing_item = db.dkr.find_one({"name": dkr.name})
     if existing_item:
         return 'Data already exists.'
     else:
-        dkr_connection.local.dkr.insert_one(dict(dkr))
-        return DewansKerja(dkr_connection.local.dkr.find())
+        db.dkr.insert_one(dict(dkr))
+        return DewansKerja(db.dkr.find())
 
-@dkr.put('/{id}')
+@dkr.put('/{id}',dependencies=[Depends(admin_required)])
 async def update_dkr(id, dkr: DKR):
-    updated_dkr = dkr_connection.local.dkr.find_one_and_update(
+    updated_dkr = db.dkr.find_one_and_update(
         {"_id": ObjectId(id)},
         {"$set": dict(dkr)},
         return_document=pymongo.ReturnDocument.AFTER
     )
     return DewanKerja(updated_dkr)
 
-@dkr.delete('/{id}')
+@dkr.delete('/{id}',dependencies=[Depends(admin_required)])
 async def delete_dkr(id):
-    dkr = dkr_connection.local.dkr.find_one_and_delete({"_id": ObjectId(id)})
+    dkr = db.dkr.find_one_and_delete({"_id": ObjectId(id)})
     if dkr:
         return DewanKerja(dkr)
     else:
