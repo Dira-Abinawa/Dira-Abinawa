@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pymongo import ReturnDocument
 from config.dbfull import get_database
-from routes.login import get_current_active_user
+from routes.login import admin_required, get_current_active_user
 from schemas.schemas import ActivityPramuka
 from models.models import Activity
 from bson import ObjectId
@@ -18,9 +18,12 @@ async def find_all_activity(database=Depends(get_database)):
     
     result = [Activity(**activity) for activity in activity_list]
     return result
-
 @activity.post('/')
-async def create_activity(activity: Activity, database=Depends(get_current_active_user)):
+async def create_activity(
+    activity: Activity, 
+    database=Depends(get_database),
+    is_admin : bool =Depends(admin_required)
+):
     activity_collection = database['activity']
     try:
         result = await activity_collection.insert_one(activity.dict())
@@ -30,7 +33,7 @@ async def create_activity(activity: Activity, database=Depends(get_current_activ
         raise HTTPException(status_code=400, detail="Duplicate activity name")
 
 @activity.put('/{id}')
-async def update_activity(id: str, activity: Activity, database=Depends(get_current_active_user)):
+async def update_activity(id: str, activity: Activity,database=Depends(get_database),is_admin : bool =Depends(admin_required)):
     activity_collection = database['activity']
     activity_id = ObjectId(id)
     updated_activity = await activity_collection.find_one_and_update(
@@ -43,8 +46,8 @@ async def update_activity(id: str, activity: Activity, database=Depends(get_curr
     else:
         raise HTTPException(status_code=404, detail="Data not found")
 
-@activity.delete('/{id}')
-async def delete_activity(id: str, database=Depends(get_current_active_user)):
+@activity.delete('/{id}',dependencies=[Depends(admin_required)])
+async def delete_activity(id: str, database=Depends(get_database)):
     activity_collection = database['activity']
     activity_id = ObjectId(id)
     delete_result = await activity_collection.delete_one({"_id": activity_id})

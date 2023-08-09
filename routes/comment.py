@@ -25,7 +25,6 @@ async def find_all_comment(database=Depends(get_database), current_user=Depends(
 
     return result
 
-
 @comment.get('/by_news/{id_news}')
 async def get_comment_by_id(id_news: str, current_user: UserInDB = Depends(get_current_active_user), database=Depends(get_database)):
     comment_collection = database["comment"]

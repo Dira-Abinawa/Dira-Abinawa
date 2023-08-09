@@ -10,18 +10,16 @@ import base64
 from datetime import datetime, timedelta
 from bson import json_util
 
-SECRET_KEY = "your_secret_key"  # Ganti dengan kunci rahasia Anda
+SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 regist = APIRouter(tags=["Registrasi"])
 
-# Function to hash password using HS256
 def hash_password(password: str, secret_key: str) -> str:
     hashed = hmac.new(secret_key.encode('utf-8'), password.encode('utf-8'), hashlib.sha256)
     return base64.urlsafe_b64encode(hashed.digest()).decode('utf-8')
 
-# Function to authenticate user
 def authenticate_user(username: str, password: str):
     user = db.users.find_one({"username": username})
     if user and verify_password(password, user["hashed_password"]):

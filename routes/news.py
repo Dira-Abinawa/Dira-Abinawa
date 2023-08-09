@@ -21,7 +21,7 @@ async def find_all_news(database=Depends(get_database)):
     news_cursor = news_db.find()
     news_list = await news_cursor.to_list(length=None)
     if not news_list:
-        return "Data not found."
+        return []
     result_news = []
 
     for news_item in news_list:
@@ -32,13 +32,7 @@ async def find_all_news(database=Depends(get_database)):
         comments_data = await comment_cursor.to_list(length=None)
         comments = [Comments(**{**comment, "_id": str(comment["_id"])}) for comment in comments_data]
         updated_at = news_item.get("updated_at")
-
-        # Memeriksa apakah 'author' ada di dokumen dan bukan None, jika tidak berikan nilai default "Unknown"
         author = news_item.get("author", "Unknown")
-
-        # Gunakan None untuk mengisi nilai yang hilang jika tidak ingin menetapkan nilai default
-        # author = news_item.get("author")
-
         result_news.append(News(
             id=news_id,
             title=news_item["title"],
@@ -85,7 +79,7 @@ async def create_news(
 @news.get('/hashtag')
 async def get_by_hashtag(database = Depends(get_database), hashtag: Optional[str] = Query(None, enum=[item.value for item in HashtagParams])):
     news_db = database["news"]
-    comment_db = database["comment"]  # Ganti "news" dengan "comment" jika memang ini adalah koleksi komentar.
+    comment_db = database["comment"]
 
     filter_params = {}
     if hashtag and hashtag in [item.value for item in HashtagParams]:
@@ -101,7 +95,7 @@ async def get_by_hashtag(database = Depends(get_database), hashtag: Optional[str
         news_id = str(news_item["_id"]) 
         comment_cursor = comment_db.find({"id_news": news_id})
         comments = await parse_comments(comment_cursor)
-        news_item["_id"] = str(news_item["_id"])  # Parse _id menjadi bentuk string
+        news_item["_id"] = str(news_item["_id"]) 
         news_item["comments"] = comments
 
     return jsonable_encoder(result_filter)
@@ -110,7 +104,7 @@ async def parse_comments(comment_cursor):
     comments = []
     async for comment in comment_cursor:
         comment_dict = comment.copy()
-        comment_dict["_id"] = str(comment["_id"])  # Parse _id menjadi bentuk string
+        comment_dict["_id"] = str(comment["_id"]) 
         comments.append(comment_dict)
     return comments
 
@@ -135,7 +129,6 @@ async def update_news(
         "updated_at": datetime.now()
     }
     if current_user.is_admin:
-        # Jika admin, update semua berita yang sesuai dengan id
         updated_news = await news_db.find_one_and_update(
             {"_id": ObjectId(id)},
             {"$set": news_data},

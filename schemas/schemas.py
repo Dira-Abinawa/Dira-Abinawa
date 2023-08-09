@@ -5,7 +5,6 @@ def UserPramuka(item)->dict:
         "full_name":item["full_name"],
         "username":item["username"],
         "email":item["email"],
-        "hashed_password":item["hashed_password"],
         "active":item["active"],
     }
     
@@ -93,7 +92,9 @@ def OpinionPramuka(item)->dict:
         "id":str(item["_id"]),
         "sender_name":item["sender_name"],
         "subject":item["subject"],
-        "content":item["content"]
+        "content":item["content"],
+        "created_at": item.get("created_at"),
+        "updated_at": item.get("updated_at"),
     }
     
 def OpinionsPramuka(entity)->list:

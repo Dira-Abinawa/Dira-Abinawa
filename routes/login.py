@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta
 from typing import Annotated, List, Dict
 from fastapi import Depends, APIRouter, Form, HTTPException, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import bcrypt
 from models.models import Token, TokenData, User, UserInDB, UserRegistration, News, myOpinion
-from config.dbfull import db
+from config.dbfull import get_database
 from pymongo.collection import Collection
 
 from schemas.schemas import UserPramuka
@@ -21,9 +23,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 login = APIRouter(tags=["Login"])
 
-def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
+        status_code=401,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
@@ -32,38 +34,20 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         username: str = payload.get("sub")
         if username is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
-        raise credentials_exception
-    user = get_user(username=token_data.username)
-    if user is None:
-        raise credentials_exception
-    return user
-
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        user = await get_user(username)  # Menambahkan kata kunci await di sini
+        if user is None:
             raise credentials_exception
-        token_data = TokenData(username=username)
-    except JWTError:
+        return user
+    except jwt.ExpiredSignatureError:
         raise credentials_exception
-    user = get_user(username=token_data.username)
-    if user is None:
+    except jwt.PyJWTError:
         raise credentials_exception
-    return user
 
 async def get_current_active_user(
     current_user: UserInDB = Depends(get_current_user),
-    
 ):
-    if not current_user.active:
+    user = current_user
+    if not user.active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
@@ -86,19 +70,22 @@ def verify_password(plain_password, hashed_password):
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-def get_user(username: str):
-    user_dict = db.users.find_one({"username": username})
+async def get_user(username: str):
+    db = await get_database()
+    user_dict = await db.users.find_one({"username": username})
     if user_dict:
         return UserInDB(**user_dict)
     else:
         return None
 
-def authenticate_user(username: str, password: str):
-    user = get_user(username)
+async def authenticate_user(username: str, password: str):
+    user = await get_user(username)
     if not user:
-        return False
+        return None
+
     if not verify_password(password, user.hashed_password):
-        return False
+        return None
+    
     return user
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -111,8 +98,9 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def admin_required(current_user: UserInDB = Depends(get_current_user)):
-    if not current_user.is_admin:
+async def admin_required(current_user: UserInDB = Depends(get_current_user)):
+    user = current_user
+    if not user.is_admin:
         raise HTTPException(status_code=403, detail="You are not authorized to access this resource.")
     return current_user
 
@@ -123,46 +111,43 @@ def non_admin_required(current_user: UserInDB = Depends(get_current_user)):
     return current_user
 
 @login.post("/register", response_model=Dict[str, str])
-async def register_user(
-    username: str = Form(...),
-    email: str = Form(...),
-    full_name: str = Form(...),
-    password: str = Form(...),
-    is_admin: str = Form(...),
-):
-    if db.users.find_one({"username": username}):
-        raise HTTPException(status_code=400, detail="Username already taken")
-    if db.users.find_one({"email": email}):
+async def register_user(user: UserInDB, database=Depends(get_database)):
+    db_users = database["users"]
+    
+    # Check if username already exists
+    existing_username = await db_users.find_one({"username": user.username})
+    if existing_username:
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    # Check if email already exists
+    existing_email = await db_users.find_one({"email": user.email})
+    if existing_email:
         raise HTTPException(status_code=400, detail="Email already registered")
-    hashed_password = hash_password(password)
-    if db.users.find_one({"email": "admin@admin.com"}):
-        user_data = {
-            "username": username,
-            "email": email,
-            "full_name": full_name,
-            "hashed_password": hashed_password,
-            "active": True,
-            "is_admin": False
-        }
-    else:
-        user_data = {
-            "username": username,
-            "email": email,
-            "full_name": full_name,
-            "hashed_password": hashed_password,
-            "active": True,
-            "is_admin": False
-        }
-    db.users.insert_one(user_data)
+
+    # Hash the password securely
+    hashed_password = get_password_hash(user.hashed_password)
+
+    # Create user dictionary
+    user_dict = {
+        "username": user.username,
+        "full_name": user.full_name,
+        "email": user.email,
+        "hashed_password": hashed_password,
+        "active": user.active,
+        "is_admin": False,
+    }
+
+    # Insert user into the database
+    await db_users.insert_one(user_dict)
 
     return {"message": "User registered successfully"}
 
 @login.post("/")
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     username = form_data.username
     password = form_data.password
 
-    user = authenticate_user(username, password)
+    user = await authenticate_user(username, password)  # Menggunakan motor untuk authentikasi user
     if user:
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(data={"sub": user.username}, expires_delta=access_token_expires)
@@ -170,35 +155,38 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@login.get("/users/me/", response_model=UserInDB)
-async def read_users_me(current_user: UserInDB = Depends(get_current_user)):
-    # Query untuk mendapatkan data dari db.users berdasarkan username
-    user_data = db.users.find_one({"username": current_user.username})
+@login.get("/users/me/")
+async def read_users_me(
+    current_user: UserInDB = Depends(get_current_user),
+    database: Collection = Depends(get_database),
+):
+    db_opinion = database["opinion"]
+    opinions_cursor = db_opinion.find({"sender_name": current_user.full_name})
 
-    # Membuat instance UserInDB
-    user_in_db = UserInDB(
-        full_name=user_data["full_name"],
-        username=user_data["username"],
-        email=user_data["email"],
-        hashed_password=user_data["hashed_password"],
-        active=user_data["active"],
-        is_admin=user_data["is_admin"],
-    )
+    opinions = []
+    async for opinion in opinions_cursor:
+        # Convert ObjectId to string
+        if "_id" in opinion:
+            opinion["_id"] = str(opinion["_id"])
+        opinions.append(opinion)
 
-    # Query untuk mendapatkan data dari db.opinion berdasarkan sender_name yang sama dengan full_name user aktif
-    opinions_cursor = db.opinion.find({"sender_name": user_in_db.full_name})
-
-    # Mengisi atribut opinions pada user_in_db dengan data dari db.opinion
-    user_in_db.opinions = [myOpinion(**opinion_data) for opinion_data in opinions_cursor]
-
-    return user_in_db
+    user_with_opinions = {
+        "username": current_user.username,
+        "full_name": current_user.full_name,
+        "email": current_user.email,
+        "hashed_password": current_user.hashed_password,
+        "active": current_user.active,
+        "is_admin": current_user.is_admin,
+        "opinions": opinions,
+    }
+    
+    return JSONResponse(user_with_opinions)
 
 @login.get('/user/all',dependencies=[Depends(admin_required)])
-async def get_all_user():
-    user_cursor = db.users.find()
-    user_list = list(user_cursor)
-    if not user_list:
-        return []
+async def get_all_user(database=Depends(get_database)):
+    db_users = database["users"]
+    user_cursor = db_users.find()
+    user_list = await user_cursor.to_list(length=None)
     for user in user_list:
         for user in user_list:
             user["_id"] = str(user["_id"])

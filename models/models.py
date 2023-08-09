@@ -1,7 +1,8 @@
+from fastapi import Depends, dependencies
 from pydantic import BaseModel, Field, EmailStr, constr, SecretStr
 from enum import Enum
 from typing import List, Optional
-from config.dbfull import db
+from config.dbfull import get_database
 from bson import ObjectId
 from datetime import datetime
 
@@ -11,7 +12,8 @@ class UserRegistration(BaseModel):
     full_name: str
     email: EmailStr
     hashed_password: str
-    disabled: bool
+    active: bool
+    is_admin : bool = False
 
 class Token(BaseModel):
     access_token: str
@@ -25,8 +27,8 @@ class TokenData(BaseModel):
 class User(BaseModel):
     username: str
     full_name: str
-    email: str
-    disabled: bool
+    email: EmailStr
+    active: bool
     
 #Opinion
 class myOpinion(BaseModel):
@@ -34,6 +36,8 @@ class myOpinion(BaseModel):
     sender_name : str
     subject : str
     content : str
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
     class Config:
         allow_population_by_field_name = True
         json_encoders = {
@@ -47,7 +51,7 @@ class myOpinion(BaseModel):
 class Admin(BaseModel):
     full_name: str
     username: str
-    email: str
+    email: EmailStr
     hashed_password: str
     active: bool
     is_admin : bool
@@ -55,10 +59,10 @@ class Admin(BaseModel):
 class UserInDB(BaseModel):
     full_name: str
     username: str
-    email: str
+    email: EmailStr
     hashed_password: str
-    active: bool
-    is_admin : Optional[bool]
+    active: bool 
+    is_admin: Optional[bool] = False
     opinions : List[myOpinion] = []
     
 #Activity
@@ -135,13 +139,15 @@ class News(BaseModel):
     comments: List[Comments] = []
 
     @classmethod
-    def get_comments_by_id_news(cls, news_id):
+    def get_comments_by_id_news(cls, news_id,database=Depends(get_database)):
+        db_comment = database["comment"]
+        db_news = database["news"]
         # Retrieve comments from MongoDB for the given news_id
-        comments_docs = db.comment.find({"id_news": news_id})
+        comments_docs = db_comment.find({"id_news": news_id})
         comments = [Comments(**doc) for doc in comments_docs]
 
         # Retrieve news data from MongoDB
-        news_doc = db.news.find_one({"_id": ObjectId(news_id)})
+        news_doc = db_news.find_one({"_id": ObjectId(news_id)})
 
         # Create a News object with the retrieved data and comments
         if news_doc:

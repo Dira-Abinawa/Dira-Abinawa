@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, Request
-from config.dbfull import db
-from routes.login import admin_required
+from fastapi import APIRouter, Depends, HTTPException, Request
+from config.dbfull import get_database
+from routes.login import admin_required, get_current_active_user
 from schemas.schemas import SchoolPadalarang, SchoolsPadalarang
 from models.models import School
 from bson import ObjectId
@@ -8,29 +8,30 @@ import pymongo
 
 sch = APIRouter(tags=["Schools"])
 
-
 @sch.get('/')
-async def find_all_schools():
-    school_cursor = db.school.find()
-    school_list = list(school_cursor)
+async def find_all_schools(database=Depends(get_database)):
+    db_school = database["schools"]
+    school_cursor = db_school.find()
+    school_list = await school_cursor.to_list(length=None)
     if not school_list:
-        return "Data not Found"
+        return []
     result = [SchoolPadalarang(school) for school in school_list]
     return result
 
 @sch.post('/',dependencies=[Depends(admin_required)])
-async def create_schools(school : School):
-    item_data = school.dict()
-    existing_item = db.school.find_one({"school_name": item_data["school_name"]})
+async def create_schools(school : School, database=Depends(get_database)):
+    db_school = database["schools"]
+    existing_item = await db_school.find_one({"school_name": school.school_name})
     if existing_item:
         return 'Data already exists.'
     else:
-        db.school.insert_one(dict(school))
-        return SchoolsPadalarang(db.school.find())
+        await db_school.insert_one(dict(school))
+        return HTTPException(status_code=200,detail="Data added successfully!",headers="Success!")
 
 @sch.put('/{id}',dependencies=[Depends(admin_required)])
-async def update_school(id, school: School):
-    updated_school = db.school.find_one_and_update(
+async def dapot_student(id, school: School,database=Depends(get_database),curent_user = Depends(get_current_active_user)):
+    db_school = database["schools"]
+    updated_school = await db_school.find_one_and_update(
         {"_id": ObjectId(id)},
         {"$set": dict(school)},
         return_document=pymongo.ReturnDocument.AFTER
@@ -38,8 +39,9 @@ async def update_school(id, school: School):
     return SchoolPadalarang(updated_school)
 
 @sch.delete('/{id}',dependencies=[Depends(admin_required)])
-async def delete_school(id):
-    school = db.school.find_one_and_delete({"_id": ObjectId(id)})
+async def delete_school(id, database=Depends(get_database)):
+    db_school = database["schools"]
+    school = await db_school.find_one_and_delete({"_id": ObjectId(id)})
     if school:
         return SchoolPadalarang(school)
     else:
