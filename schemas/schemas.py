@@ -28,7 +28,7 @@ def ActivitiesPramuka(entity)->list:
 def DataPotensi(item:dict)-> dict:
     return {
         "id": str(item["_id"]),
-        "school_name": str(item["school_name"]),
+        "gudep": item.get("gudep", None),
         "male_builder": item.get("male_builder", None),
         "female_builder": item.get("female_builder", None),
         "male_member": item.get("male_member", None),
@@ -106,10 +106,10 @@ def SchoolPadalarang(item)->dict:
     return {
         "id":str(item["_id"]),
         "school_name":item["school_name"],
-        "basis_name":item["basis_name"],
-        "male_ambalan_name":item["male_ambalan_name"],
-        "female_ambalan_name": item.get("female_ambalan_name", ""),
-        "registration_number":item["registration_number"],
+        "ambalan_name":item["ambalan_name"],
+        "level":item["level"],
+        "gudep":item["gudep"],
+        "registration":item["registration"],
     }
 def SchoolsPadalarang(entity)->list:
     return[SchoolPadalarang(item)for item in entity]

@@ -131,6 +131,7 @@ async def register_user(user: UserInDB, database=Depends(get_database)):
     user_dict = {
         "username": user.username,
         "full_name": user.full_name,
+        'gudep_number': user.gudep_number,
         "email": user.email,
         "hashed_password": hashed_password,
         "active": user.active,
@@ -161,7 +162,9 @@ async def read_users_me(
     database: Collection = Depends(get_database),
 ):
     db_opinion = database["opinion"]
+    db_school = database["schools"]
     opinions_cursor = db_opinion.find({"sender_name": current_user.full_name})
+    gudep_cursor = db_school.find({"gudep": current_user.gudep_number})
 
     opinions = []
     async for opinion in opinions_cursor:
@@ -169,14 +172,19 @@ async def read_users_me(
         if "_id" in opinion:
             opinion["_id"] = str(opinion["_id"])
         opinions.append(opinion)
+    
+    schools = []
+    async for school in gudep_cursor:
+        # Convert ObjectId to string
+        if "_id" in school:
+            school["_id"] = str(school["_id"])
+        schools.append(school)
 
     user_with_opinions = {
-        "username": current_user.username,
         "full_name": current_user.full_name,
+        "gudep_number": current_user.gudep_number,
         "email": current_user.email,
-        "hashed_password": current_user.hashed_password,
-        "active": current_user.active,
-        "is_admin": current_user.is_admin,
+        "school": schools,
         "opinions": opinions,
     }
     

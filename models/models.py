@@ -56,13 +56,23 @@ class Admin(BaseModel):
     active: bool
     is_admin : bool
 
+#Schools
+class School(BaseModel):
+    school_name: str
+    ambalan_name: str
+    level: str
+    gudep : str
+    registration: bool
+    
 class UserInDB(BaseModel):
     full_name: str
+    gudep_number:str
     username: str
     email: EmailStr
     hashed_password: str
     active: bool 
     is_admin: Optional[bool] = False
+    school: List[School] = []
     opinions : List[myOpinion] = []
     
 #Activity
@@ -82,7 +92,7 @@ class Activity(BaseModel):
 
 #Data Potensi
 class Dapot(BaseModel):
-    school_name :str
+    gudep :str
     male_builder : int
     famale_builder : int
     male_member : int
@@ -115,26 +125,16 @@ class Comments(BaseModel):
     id_news: str
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
-#News
-class HashtagParams(str,Enum):
-    def __str__(self):
-        return str(self.value)
-    senang = '#senang'
-    bahagia = '#bahagia'
-    sedih = '#sedih'
-    kecewa = '#kecewa'
-    pramuka = '#pramuka'
-
 
 class News(BaseModel):
     id: Optional[str]
+    category: Optional[str]
     title: Optional[str]
-    description: Optional[str]
-    content: Optional[str]
-    hashtag: HashtagParams
     thumbnail: Optional[str]
-    author : Optional[str]
-    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    content: Optional[str]
+    images: List[str] = []
+    writer : Optional[str]
+    created_at: Optional[str] 
     updated_at: Optional[datetime] = None
     comments: List[Comments] = []
 
@@ -156,7 +156,7 @@ class News(BaseModel):
                 title=news_doc['title'],
                 description=news_doc['description'],
                 content=news_doc['content'],
-                hashtag=HashtagParams(news_doc['hashtag']),
+                category=news_doc['category'],
                 thumbnail=news_doc.get('thumbnail'),
                 comments=comments
             )
@@ -165,10 +165,3 @@ class News(BaseModel):
             return None
 
     
-#Schools
-class School(BaseModel):
-    school_name: str = Field(..., max_length=100)
-    basis_name: str = Field(..., max_length=100)
-    male_ambalan_name: str
-    female_ambalan_name: str
-    registration_number : bool
