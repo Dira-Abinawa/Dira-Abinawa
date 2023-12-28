@@ -10,17 +10,50 @@ from datetime import datetime
 
 comment = APIRouter(tags=["Comments"])
 
-@comment.get('/')
+@comment.get('/all')
+async def find_all_comment(database=Depends(get_database)):
+    comment_collection = database["comment"]
+    comment_cursor = comment_collection.find()
+    result = []
+
+    async for comment in comment_cursor:
+        if "id_news" not in comment:
+            continue
+
+        # Mengambil informasi berita berdasarkan id_news
+        news_collection = database["news"]
+        news = await news_collection.find_one({"_id": ObjectId(comment["id_news"])})
+        if not news:
+            continue
+
+        # Membuat objek NewsComentItem dengan tambahan informasi title
+        comment_item = NewsComentItem(comment)
+        comment_item["title"] = news.get("title", "")  # Sesuaikan dengan atribut berita yang sesuai
+
+        result.append(comment_item)
+
+    return result
+
+@comment.get('/me')
 async def find_all_comment(database=Depends(get_database), current_user=Depends(get_current_active_user)):
     comment_collection = database["comment"]
     comment_cursor = comment_collection.find({"sender_name": current_user.full_name})
     result = []
 
-    async for coment in comment_cursor:
-        if "id_news" not in coment:
+    async for comment in comment_cursor:
+        if "id_news" not in comment:
             continue
 
-        comment_item = NewsComentItem(coment)
+        # Mengambil informasi berita berdasarkan id_news
+        news_collection = database["news"]
+        news = await news_collection.find_one({"_id": ObjectId(comment["id_news"])})
+        if not news:
+            continue
+
+        # Membuat objek NewsComentItem dengan tambahan informasi title
+        comment_item = NewsComentItem(comment)
+        comment_item["title"] = news.get("title", "")  # Sesuaikan dengan atribut berita yang sesuai
+
         result.append(comment_item)
 
     return result

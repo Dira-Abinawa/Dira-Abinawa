@@ -19,7 +19,7 @@ news = APIRouter(tags=["News"])
 @news.get('/')
 async def find_all_news(database=Depends(get_database)):
     news_db = database["news"]
-    news_cursor = news_db.find()
+    news_cursor = news_db.find().sort("created_at", -1)
     news_list = await news_cursor.to_list(length=None)
     if not news_list:
         return []
@@ -51,16 +51,12 @@ async def find_all_news(database=Depends(get_database)):
    
 @news.post('/')
 async def create_news(
-    category: str = Form(...),
-    title: str = Form(...),
-    thumbnail: str = Form(...),
-    content: str = Form(...),
-    images: str = Form(...),
+    news: News,
     current_user: UserInDB = Depends(get_current_active_user),
-    database = Depends(get_database)
+    database=Depends(get_database)
 ):
     news_db = database["news"]
-    existing_item = await news_db.find_one({"title": title})
+    existing_item = await news_db.find_one({"title": news.title})
     if existing_item:
         raise HTTPException(status_code=400, detail="Data already exists.")
     else:
@@ -81,11 +77,11 @@ async def create_news(
             now_local.strftime("%b %Y")
         )
         new_news_data = {
-            "category": category,
-            "title": title,
-            "thumbnail": thumbnail,
-            "content": content,
-            "images": images,
+            "category": news.category,
+            "title": news.title,
+            "thumbnail": news.thumbnail,
+            "content": news.content,
+            "images": news.images,
             "writer": current_user.full_name,
             "created_at": formatted_date,
         }
