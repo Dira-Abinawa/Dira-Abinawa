@@ -75,13 +75,17 @@ class UserInDB(BaseModel):
     school: List[School] = []
     opinions : List[myOpinion] = []
     
+class FileActivity(BaseModel):
+    id: str = Field(alias="_id")
+    filename: str
+    activity_id: str
+    
 #Activity
 class Activity(BaseModel):
     id: str = Field(alias="_id")
     activity_name : str
-    circular_letter : str
-    participant_requirements : str
     schedule_of_activities : str
+    file : List[FileActivity] = []
     
     class Config:
         arbitrary_types_allowed = True
@@ -89,6 +93,7 @@ class Activity(BaseModel):
         if '_id' in data and isinstance(data['_id'], ObjectId):
             data['_id'] = str(data['_id'])
         super().__init__(**data)
+        
 
 #Data Potensi
 class Dapot(BaseModel):

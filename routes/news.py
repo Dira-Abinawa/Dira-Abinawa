@@ -19,7 +19,7 @@ news = APIRouter(tags=["News"])
 @news.get('/')
 async def find_all_news(database=Depends(get_database)):
     news_db = database["news"]
-    news_cursor = news_db.find().sort("created_at", -1)
+    news_cursor = news_db.find().sort("created_at", pymongo.DESCENDING)
     news_list = await news_cursor.to_list(length=None)
     if not news_list:
         return []
