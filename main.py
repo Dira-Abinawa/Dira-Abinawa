@@ -8,7 +8,6 @@ from routes.login import login
 from routes.opinion import opinion
 from routes.comment import comment
 
-
 app = FastAPI(
     title='Dira Abinawa',
     version='1.0.0'
