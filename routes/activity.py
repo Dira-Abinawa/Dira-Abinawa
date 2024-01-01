@@ -70,6 +70,8 @@ async def upload_file(
 
     try:
         for up_file in up_files:
+            if not up_file.filename.lower().endswith('.pdf'):
+                return {"message": "Only PDF files are allowed"}
             contents = await up_file.read()
 
             # Membuat direktori jika belum ada
